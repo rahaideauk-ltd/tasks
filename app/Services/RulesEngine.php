@@ -75,7 +75,7 @@ class RulesEngine
                 'The homepage has no meta description. Write one of 140 to 160 characters saying what you do, for whom, ending with a call to action.',
                 'Homepage has no meta description', ['title' => $d['site']['title'] ?? null])] : [],
 
-            'gsc-missing' => fn ($d) => empty($d['gsc']) ? [$this->s($C['setup'],
+            'gsc-missing' => fn ($d) => (empty($d['gsc']) && empty($d['errors']['gsc'])) ? [$this->s($C['setup'],
                 'اتصال Google Search Console', 'Connect Google Search Console',
                 'سایت هنوز به Search Console وصل نیست. در صفحه خودت دکمه «اتصال به گوگل» را بزن و سایت را انتخاب کن تا ببینیم با چه عبارت‌هایی پیدا می‌شوی.',
                 'The site is not connected to Search Console yet. Use "Connect Google" on your page and pick the site so we can see which searches bring people to you.',
@@ -108,7 +108,7 @@ class RulesEngine
                 return $out;
             },
 
-            'ga4-missing' => fn ($d) => empty($d['ga4']) ? [$this->s($C['setup'],
+            'ga4-missing' => fn ($d) => (empty($d['ga4']) && empty($d['errors']['ga4'])) ? [$this->s($C['setup'],
                 'اتصال Google Analytics 4', 'Connect Google Analytics 4',
                 'هنوز GA4 وصل نیست. بعد از اتصال گوگل، پراپرتی GA4 را در صفحه خودت انتخاب کن تا رفتار کاربران را ببینیم.',
                 'GA4 is not connected yet. After connecting Google, pick the GA4 property on your page so we can see user behaviour.',
@@ -148,7 +148,7 @@ class RulesEngine
                 "No conversions recorded across {$d['ga4']['totals']['sessions']} sessions. Mark at least one key event (contact form, phone call, purchase) as a Key event in GA4.",
                 'Sessions but zero conversions tracked', $d['ga4']['totals'], 'high')] : [],
 
-            'clarity-missing' => fn ($d) => empty($d['clarity']) ? [$this->s($C['setup'],
+            'clarity-missing' => fn ($d) => (empty($d['clarity']) && empty($d['errors']['clarity'])) ? [$this->s($C['setup'],
                 'اتصال Microsoft Clarity', 'Connect Microsoft Clarity',
                 'Clarity رایگان است و نشان می‌دهد کاربران دقیقاً کجا گیر می‌کنند. در Clarity یک پروژه بساز، کد را در سایت بگذار و API token را در صفحه خودت وارد کن.',
                 'Clarity is free and shows exactly where users get stuck. Create a project, add the snippet to the site and paste the API token on your page.',

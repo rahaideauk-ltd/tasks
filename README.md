@@ -48,7 +48,9 @@ Google tokens and Clarity tokens are stored encrypted (`APP_KEY`).
 - `analyze()` runs `RulesEngine` (deterministic checks such as low CTR pages, striking-distance queries, rage clicks, missing HTTPS/viewport/meta) and `AiTaskGenerator` (Claude with a JSON schema: categories + bilingual tasks + a short assessment). Results become **draft** tasks; duplicates by title are skipped.
 - Drafts are published as the next round from the admin page, or automatically with `TASKS_AUTO_PUBLISH=true`.
 
-Analysis runs through the `AnalyzeProject` job. With `QUEUE_CONNECTION=sync` it runs right after the HTTP response; with `database` run `php artisan queue:work`.
+Analysis runs through the `AnalyzeProject` job (`AnalyzeProject::start()`). With `QUEUE_CONNECTION=sync` it runs right after the HTTP response inside the web process, so PHP-FPM's `request_terminate_timeout` must allow a few minutes; with `database` run `php artisan queue:work` (recommended in production). A run with no progress for 15 minutes is treated as stuck and can be started again.
+
+The homepage crawler only fetches public `http(s)` addresses on ports 80/443 (private, loopback and reserved IPs are refused, on every redirect). `POST /projects` is limited to 5 per hour per IP.
 
 ## Task lifecycle
 

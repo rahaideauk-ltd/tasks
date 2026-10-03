@@ -18,8 +18,24 @@ class AnalyzeProject implements ShouldQueue
 
     public function __construct(public Project $project, public bool $sync = true, public bool $useRules = true, public bool $useAi = true) {}
 
+    /**
+     * Mark the project as running and dispatch. With a real queue the worker picks it up;
+     * with QUEUE_CONNECTION=sync it runs after the HTTP response so the request is not blocked.
+     */
+    public static function start(Project $project, bool $sync = true, bool $useRules = true, bool $useAi = true): void
+    {
+        $project->forceFill(['analysis_status' => 'running'])->save();
+        $pending = static::dispatch($project, $sync, $useRules, $useAi);
+        if (config('queue.default') === 'sync') {
+            $pending->afterResponse();
+        }
+    }
+
     public function handle(ProjectAnalyzer $analyzer): void
     {
+        // Outside a worker (after-response run) the queue timeout does not apply; raise PHP's limit instead.
+        @set_time_limit($this->timeout);
+
         $project = $this->project->fresh();
         if ($this->sync) {
             $analyzer->sync($project);

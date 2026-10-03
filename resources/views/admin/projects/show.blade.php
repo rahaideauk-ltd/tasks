@@ -1,9 +1,10 @@
 <x-layouts.app :title="$project->name" :homeUrl="route('admin.projects.index')">
     <x-slot:nav>
         <a href="{{ route('admin.projects.index') }}" class="text-slate-500 hover:text-slate-900">{{ __('Projects') }}</a>
+        <a href="{{ route('admin.skills.index') }}" class="text-slate-500 hover:text-slate-900">{{ __('Skills') }}</a>
         <form method="post" action="{{ route('admin.logout') }}">@csrf<button class="text-slate-500 hover:text-slate-900">{{ __('Log out') }}</button></form>
     </x-slot:nav>
-    @php($running = $project->analysis_status === 'running')
+    @php($running = $project->isAnalysing())
     @if ($running)<meta http-equiv="refresh" content="15">@endif
 
     {{-- header --}}
@@ -116,6 +117,8 @@
             @endif
         </div>
     </section>
+
+    @include('admin.projects._knowledge')
 
     {{-- review queue --}}
     @if ($review->isNotEmpty())

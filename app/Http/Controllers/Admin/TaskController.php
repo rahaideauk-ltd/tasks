@@ -17,6 +17,7 @@ class TaskController extends Controller
             'description_fa' => ['nullable', 'string', 'max:5000'], 'description_en' => ['nullable', 'string', 'max:5000'],
             'category' => ['nullable', 'string', 'max:100'],
             'priority' => ['nullable', Rule::in(Task::PRIORITIES)],
+            'skill_id' => ['nullable', 'integer', Rule::exists('skills', 'id')],
         ];
     }
 
@@ -33,6 +34,9 @@ class TaskController extends Controller
             if (isset($d[$k])) {
                 $out[$k] = $d[$k];
             }
+        }
+        if (array_key_exists('skill_id', $d)) {
+            $out['skill_id'] = $d['skill_id'] ?: null;
         }
         if (! empty($d['category'])) {
             $out['category_id'] = $project->categoryFor($d['category'], $d['category'])->id;
@@ -73,6 +77,16 @@ class TaskController extends Controller
             'decision' => ['required', Rule::in(['approve', 'reject', 'reopen', 'drop', 'publish'])],
             'feedback' => ['nullable', 'string', 'max:3000', 'required_if:decision,reject'],
         ]);
+        $allowedFrom = [
+            'approve' => [Task::STATUS_SUBMITTED],
+            'reject' => [Task::STATUS_SUBMITTED],
+            'reopen' => [Task::STATUS_NOT_DONE, Task::STATUS_REJECTED, Task::STATUS_APPROVED, Task::STATUS_DROPPED],
+            'drop' => [Task::STATUS_TODO, Task::STATUS_SUBMITTED, Task::STATUS_NOT_DONE, Task::STATUS_REJECTED],
+            'publish' => [Task::STATUS_DRAFT],
+        ];
+        if (! in_array($task->status, $allowedFrom[$d['decision']], true)) {
+            return back()->withErrors(['decision' => __('This action is not allowed for the task\'s current status.')]);
+        }
         $patch = match ($d['decision']) {
             'approve' => ['status' => Task::STATUS_APPROVED],
             'reject' => ['status' => Task::STATUS_REJECTED],

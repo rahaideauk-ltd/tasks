@@ -1,5 +1,5 @@
 <x-layouts.app :title="$project->name" :homeUrl="route('portal.show', $project->token)">
-    @php($running = $project->analysis_status === 'running')
+    @php($running = $project->isAnalysing())
     @if ($running)
         <meta http-equiv="refresh" content="20">
     @endif

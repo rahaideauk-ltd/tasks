@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Jobs\AnalyzeProject;
 use App\Models\Project;
+use App\Models\Skill;
 use App\Models\Task;
 use App\Services\AiTaskGenerator;
 use App\Services\GoogleService;
@@ -27,7 +28,7 @@ class ProjectController extends Controller
 
     public function show(Project $project)
     {
-        $tasks = $project->tasks()->with('category')->orderBy('round')->orderBy('created_at')->get();
+        $tasks = $project->tasks()->with(['category', 'skill'])->orderBy('round')->orderBy('created_at')->get();
 
         return view('admin.projects.show', [
             'project' => $project,
@@ -36,6 +37,10 @@ class ProjectController extends Controller
             'review' => $tasks->whereIn('status', [Task::STATUS_SUBMITTED, Task::STATUS_NOT_DONE]),
             'rounds' => $tasks->where('status', '!=', Task::STATUS_DRAFT)->groupBy('round')->sortKeysDesc(),
             'categories' => $project->categories()->get(),
+            'facts' => $project->facts()->get(),
+            'factKinds' => config('tasks.fact_kinds', []),
+            'revisions' => $project->memoryRevisions()->limit(10)->get(),
+            'skills' => Skill::query()->availableFor($project)->get(),
             'aiConfigured' => AiTaskGenerator::configured(),
             'autoPublish' => config('tasks.auto_publish'),
         ]);
@@ -71,8 +76,10 @@ class ProjectController extends Controller
     /** Sync + rules + AI, in the background. The page shows status while it runs. */
     public function analyze(Request $request, Project $project)
     {
-        $project->forceFill(['analysis_status' => 'running'])->save();
-        AnalyzeProject::dispatch($project, sync: true, useRules: $request->boolean('rules', true), useAi: $request->boolean('ai', true))->afterResponse();
+        if ($project->isAnalysing()) {
+            return back()->with('error', __('An analysis is already running.'));
+        }
+        AnalyzeProject::start($project, sync: true, useRules: $request->boolean('rules', true), useAi: $request->boolean('ai', true));
 
         return back()->with('ok', __('Analysis started. Refresh the page in a minute.'));
     }
@@ -81,6 +88,9 @@ class ProjectController extends Controller
     public function publish(Project $project)
     {
         $n = $project->publishDrafts();
+        if ($n === 0) {
+            return back()->with('error', __('There are no drafts to publish.'));
+        }
 
         return back()->with('ok', __(':n tasks published as round :r.', ['n' => $n, 'r' => $project->currentRound()]));
     }

@@ -29,7 +29,7 @@ class GoogleAuthController extends Controller
         } catch (\Throwable $e) {
             report($e);
 
-            return redirect()->route('portal.show', $project->token)->with('error', __('Google connection failed.').' '.$e->getMessage());
+            return redirect()->route('portal.show', $project->token)->with('error', __('Google connection failed.'));
         }
 
         return redirect()->route('portal.google', $project->token);

@@ -12,5 +12,11 @@
     "analysis.idle": "—",
     "analysis.running": "Running",
     "analysis.done": "Done",
-    "analysis.failed": "Failed"
+    "analysis.failed": "Failed",
+    "fact.keyword": "Keywords",
+    "fact.competitor": "Competitors",
+    "fact.feature": "Distinctive features",
+    "fact.audience": "Audience",
+    "fact.offer": "Products / services",
+    "fact.location": "Locations"
 }

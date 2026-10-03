@@ -30,7 +30,7 @@ class Task extends Model
     public const PRIORITIES = ['high', 'medium', 'low'];
 
     protected $fillable = [
-        'project_id', 'category_id', 'round', 'title_fa', 'title_en', 'description_fa', 'description_en',
+        'project_id', 'category_id', 'skill_id', 'round', 'title_fa', 'title_en', 'description_fa', 'description_en',
         'priority', 'source', 'reason', 'evidence', 'status', 'client_note', 'admin_feedback', 'responded_at', 'reviewed_at',
     ];
 
@@ -47,6 +47,11 @@ class Task extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function skill(): BelongsTo
+    {
+        return $this->belongsTo(Skill::class);
     }
 
     public function scopeVisibleToClient(Builder $q): Builder

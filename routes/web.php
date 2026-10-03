@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\AuthController;
+use App\Http\Controllers\Admin\KnowledgeController;
 use App\Http\Controllers\Admin\ProjectController;
+use App\Http\Controllers\Admin\SkillController;
 use App\Http\Controllers\Admin\TaskController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\OnboardingController;
@@ -12,9 +14,10 @@ Route::view('/', 'home')->name('home');
 
 // ---- client onboarding + portal (token link, no login) ----
 Route::get('/new', [OnboardingController::class, 'create'])->name('onboarding.create');
-Route::post('/projects', [OnboardingController::class, 'store'])->name('onboarding.store');
+// Every new project triggers a crawl and a Claude call, so limit sign-ups per IP.
+Route::post('/projects', [OnboardingController::class, 'store'])->middleware('throttle:5,60')->name('onboarding.store');
 
-Route::prefix('/p/{project:token}')->name('portal.')->group(function () {
+Route::prefix('/p/{project:token}')->middleware('throttle:60,1')->name('portal.')->group(function () {
     Route::get('/', [PortalController::class, 'show'])->name('show');
     Route::post('/tasks/{task}/respond', [PortalController::class, 'respond'])->name('respond');
     Route::post('/clarity', [PortalController::class, 'clarity'])->name('clarity');
@@ -42,4 +45,17 @@ Route::prefix('/admin')->middleware('auth')->name('admin.')->group(function () {
     Route::put('/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
     Route::post('/tasks/{task}/review', [TaskController::class, 'review'])->name('tasks.review');
     Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
+
+    // internal knowledge (admin-only)
+    Route::post('/projects/{project}/facts', [KnowledgeController::class, 'storeFact'])->name('facts.store');
+    Route::put('/facts/{fact}', [KnowledgeController::class, 'updateFact'])->name('facts.update');
+    Route::delete('/facts/{fact}', [KnowledgeController::class, 'destroyFact'])->name('facts.destroy');
+    Route::put('/projects/{project}/brief', [KnowledgeController::class, 'updateBrief'])->name('projects.brief');
+    Route::put('/projects/{project}/memory', [KnowledgeController::class, 'updateMemory'])->name('projects.memory');
+    Route::post('/projects/{project}/memory/{revision}/restore', [KnowledgeController::class, 'restoreMemory'])->name('projects.memory.restore');
+
+    Route::get('/skills', [SkillController::class, 'index'])->name('skills.index');
+    Route::post('/skills', [SkillController::class, 'store'])->name('skills.store');
+    Route::put('/skills/{skill}', [SkillController::class, 'update'])->name('skills.update');
+    Route::delete('/skills/{skill}', [SkillController::class, 'destroy'])->name('skills.destroy');
 });

@@ -26,8 +26,8 @@ class OnboardingController extends Controller
         ]);
         $data['locale'] = app()->getLocale();
 
-        $project = Project::create($data + ['analysis_status' => 'running']);
-        AnalyzeProject::dispatch($project)->afterResponse();
+        $project = Project::create($data);
+        AnalyzeProject::start($project);
 
         return redirect()->route('portal.show', $project->token)->with('welcome', true);
     }

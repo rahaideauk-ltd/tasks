@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Project;
+use App\Models\ProjectFact;
+use App\Models\Skill;
 use App\Models\Task;
 
 /** Orchestrates: sync data from every connected source -> rules + AI -> draft tasks (or publish directly). */
@@ -19,29 +21,22 @@ class ProjectAnalyzer
     /** Pull fresh data. Per-source errors are stored in data.errors, not thrown. */
     public function sync(Project $project): Project
     {
-        $data = $project->data ?? [];
-        $data['errors'] = [];
-        $data['site'] = $this->crawler->summarize($project->site_url);
+        // Start from scratch: a disconnected or failing source must not leave its old snapshot behind.
+        $data = ['errors' => [], 'site' => $this->crawler->summarize($project->site_url)];
 
-        if ($project->hasGoogle() && $project->gsc_site_url) {
-            try {
-                $data['gsc'] = $this->google->fetchSearchConsole($project);
-            } catch (\Throwable $e) {
-                $data['errors']['gsc'] = $e->getMessage();
+        $sources = [
+            'gsc' => [$project->hasGoogle() && $project->gsc_site_url, fn () => $this->google->fetchSearchConsole($project)],
+            'ga4' => [$project->hasGoogle() && $project->ga4_property, fn () => $this->google->fetchGa4($project)],
+            'clarity' => [$project->hasClarity(), fn () => $this->clarity->fetch($project->clarity_token)],
+        ];
+        foreach ($sources as $key => [$connected, $fetch]) {
+            if (! $connected) {
+                continue;
             }
-        }
-        if ($project->hasGoogle() && $project->ga4_property) {
             try {
-                $data['ga4'] = $this->google->fetchGa4($project);
+                $data[$key] = $fetch();
             } catch (\Throwable $e) {
-                $data['errors']['ga4'] = $e->getMessage();
-            }
-        }
-        if ($project->hasClarity()) {
-            try {
-                $data['clarity'] = $this->clarity->fetch($project->clarity_token);
-            } catch (\Throwable $e) {
-                $data['errors']['clarity'] = $e->getMessage();
+                $data['errors'][$key] = $e->getMessage();
             }
         }
 
@@ -64,8 +59,12 @@ class ProjectAnalyzer
         $errors = [];
         $failed = false;
         $summary = $project->analysis['summary'] ?? null;
+        $factsAdded = 0;
+        $memoryUpdated = false;
+        // slug -> id; a project skill wins over a global one with the same slug
+        $skillIds = Skill::query()->availableFor($project)->get()->unique('slug')->pluck('id', 'slug')->all();
 
-        $add = function (array $s) use ($project, &$seen, &$created) {
+        $add = function (array $s) use ($project, $skillIds, &$seen, &$created) {
             $key = mb_strtolower($s['title']['en'] ?: $s['title']['fa']);
             if (isset($seen[$key])) {
                 return;
@@ -73,7 +72,7 @@ class ProjectAnalyzer
             $seen[$key] = true;
             $cat = $project->categoryFor($s['category']['en'] ?? 'General', $s['category']['fa'] ?? null);
             $project->tasks()->create([
-                'category_id' => $cat->id, 'round' => 0, 'status' => Task::STATUS_DRAFT,
+                'category_id' => $cat->id, 'skill_id' => $skillIds[$s['skill'] ?? ''] ?? null, 'round' => 0, 'status' => Task::STATUS_DRAFT,
                 'title_fa' => $s['title']['fa'] ?: $s['title']['en'], 'title_en' => $s['title']['en'] ?: $s['title']['fa'],
                 'description_fa' => $s['description']['fa'] ?? '', 'description_en' => $s['description']['en'] ?? '',
                 'priority' => $s['priority'] ?? 'medium', 'source' => $s['source'] ?? 'rule',
@@ -95,6 +94,12 @@ class ProjectAnalyzer
                         $add($s);
                     }
                     $summary = $out['summary'];
+                    foreach ($out['facts'] as $f) {
+                        $factsAdded += (int) (bool) $project->addFact($f['kind'] ?? '', $f['value'] ?? '', $f['note'] ?? null, 'ai', ProjectFact::STATUS_SUGGESTED);
+                    }
+                    if (trim($out['memory']) !== '') {
+                        $memoryUpdated = $project->saveMemory($out['memory'], 'ai');
+                    }
                 } catch (\Throwable $e) {
                     report($e);
                     $errors['ai'] = $e->getMessage();
@@ -108,7 +113,7 @@ class ProjectAnalyzer
         $published = config('tasks.auto_publish') ? $project->publishDrafts() : 0;
 
         $project->forceFill([
-            'analysis' => ['summary' => $summary, 'created' => $created, 'published' => $published, 'errors' => $errors],
+            'analysis' => ['summary' => $summary, 'created' => $created, 'published' => $published, 'facts' => $factsAdded, 'memory_updated' => $memoryUpdated, 'errors' => $errors],
             'analyzed_at' => now(),
             'analysis_status' => $failed ? 'failed' : 'done',
         ])->save();

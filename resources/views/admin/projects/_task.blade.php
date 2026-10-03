@@ -6,6 +6,7 @@
                 <x-priority :priority="$task->priority" />
                 <x-status-badge :status="$task->status" />
                 <span class="text-[10px] uppercase text-slate-400">{{ $task->source }}</span>
+                @if ($task->skill)<span class="text-[10px] bg-indigo-50 text-indigo-700 rounded px-1.5" title="{{ __('Skill') }}">{{ $task->skill->name }}</span>@endif
             </div>
             <p class="text-slate-600 mt-1 whitespace-pre-line">{{ $task->description() }}</p>
             @if ($task->reason)<p class="text-xs text-slate-400 mt-1">{{ __('Why') }}: {{ $task->reason }}</p>@endif
@@ -28,6 +29,7 @@
         <textarea name="description_en" rows="3" dir="ltr" class="rounded-lg border-slate-300">{{ $task->description_en }}</textarea>
         <input name="category" value="{{ $task->category?->name_en }}" list="cats" class="rounded-lg border-slate-300" placeholder="{{ __('Category') }}">
         <select name="priority" class="rounded-lg border-slate-300">@foreach (['high','medium','low'] as $p)<option value="{{ $p }}" @selected($task->priority === $p)>{{ __("priority.$p") }}</option>@endforeach</select>
+        <select name="skill_id" class="rounded-lg border-slate-300"><option value="">{{ __('No skill') }}</option>@foreach ($skills as $s)<option value="{{ $s->id }}" @selected($task->skill_id === $s->id)>{{ $s->name }}</option>@endforeach</select>
         <div class="md:col-span-2"><button class="px-4 py-1.5 rounded-lg bg-slate-900 text-white">{{ __('Save') }}</button></div>
     </form>
 </article>

@@ -1,5 +1,6 @@
 <x-layouts.app :title="__('Projects')" :homeUrl="route('admin.projects.index')">
     <x-slot:nav>
+        <a href="{{ route('admin.skills.index') }}" class="text-slate-500 hover:text-slate-900">{{ __('Skills') }}</a>
         <form method="post" action="{{ route('admin.logout') }}">@csrf<button class="text-slate-500 hover:text-slate-900">{{ __('Log out') }}</button></form>
     </x-slot:nav>
 
