@@ -51,7 +51,7 @@ class ProjectKnowledgeTest extends TestCase
         $this->put(route('admin.projects.memory', $this->project), ['memory' => 'v2']); // unchanged: no new revision
 
         $this->assertSame(2, $this->project->memoryRevisions()->count());
-        $first = $this->project->memoryRevisions()->oldest('id')->first();
+        $first = $this->project->memoryRevisions()->reorder('id')->first();
 
         $this->post(route('admin.projects.memory.restore', [$this->project, $first]))->assertSessionHas('ok');
         $this->assertSame('v1', $this->project->fresh()->memory);

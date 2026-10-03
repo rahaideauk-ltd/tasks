@@ -31,9 +31,9 @@ class SkillController extends Controller
             'project_id' => ['nullable', 'integer', Rule::exists('projects', 'id')],
             'active' => ['nullable', 'boolean'],
         ]);
-        $d['slug'] = Str::slug($d['slug'] ?: $d['name']) ?: 'skill-'.Str::lower(Str::random(6));
+        $d['slug'] = Str::slug(($d['slug'] ?? null) ?: $d['name']) ?: 'skill-'.Str::lower(Str::random(6));
         $d['project_id'] = $d['project_id'] ?? null;
-        $d['active'] = $request->boolean('active');
+        $d['active'] = $request->boolean('active', true);
 
         // slugs are unique within the same scope (global, or one project)
         $taken = Skill::where('slug', $d['slug'])->where('project_id', $d['project_id'])
