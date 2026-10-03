@@ -1,0 +1,16 @@
+{
+    "status.draft": "Draft",
+    "status.todo": "To do",
+    "status.submitted": "Done, awaiting review",
+    "status.not_done": "Not done",
+    "status.approved": "Approved",
+    "status.rejected": "Needs changes",
+    "status.dropped": "Dropped",
+    "priority.high": "High priority",
+    "priority.medium": "Medium priority",
+    "priority.low": "Low priority",
+    "analysis.idle": "—",
+    "analysis.running": "Running",
+    "analysis.done": "Done",
+    "analysis.failed": "Failed"
+}
